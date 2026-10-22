@@ -1,0 +1,7 @@
+# OWASP ZAP Baseline rule configurations
+# Format: <rule-id>\t<threshold>\t<optional-reason>
+10000	IGNORE	Server Leaks Information via Header
+10015	IGNORE	Re-examine Cache-control Directives
+10020	IGNORE	X-Frame-Options Header
+10021	IGNORE	X-Content-Type-Options Header Missing
+10038	IGNORE	Content Security Policy (CSP) Header Not Set

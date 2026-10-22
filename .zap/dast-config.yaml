@@ -1,0 +1,7 @@
+env:
+  contexts:
+    - name: "gha-local-lint-test"
+      urls:
+        - "http://localhost:8080"
+      includePaths:
+        - "http://localhost:8080.*"

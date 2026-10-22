@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gha-local-lint — Offline GitHub Actions Simulator</title>
+  <meta name="description" content="Offline GitHub Actions Expression Evaluator, Matrix Expander, & Pipeline Simulator">
+
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=gha-local-lint"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'gha-local-lint', { send_page_view: false });
+  </script>
+  <script defer src="js/analytics.js"></script>
+
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --heading: #f0f6fc;
+      --primary: #58a6ff;
+      --accent: #238636;
+      --code-bg: #0a0c10;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      padding: 4rem 2rem 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      color: var(--heading);
+      font-size: 2.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .tagline {
+      font-size: 1.25rem;
+      color: #8b949e;
+      max-width: 680px;
+      margin: 0 auto 1.5rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+    }
+    main {
+      max-width: 900px;
+      margin: 3rem auto;
+      padding: 0 1.5rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    h2 {
+      color: var(--heading);
+      margin-top: 0;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    pre {
+      background: var(--code-bg);
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      color: #79c0ff;
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      margin-right: 0.5rem;
+    }
+    .btn-primary {
+      background-color: var(--accent);
+      color: #ffffff;
+    }
+    .btn-secondary {
+      background-color: var(--card-bg);
+      border-color: var(--border);
+      color: var(--text);
+    }
+    footer {
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.85rem;
+      color: #8b949e;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="badge" id="version-badge">v0.2.0</span>
+    <h1>gha-local-lint</h1>
+    <p class="tagline">Offline GitHub Actions Expression & Matrix Simulator. Catch broken conditions, script injections, and DAG cycles before <code>git push</code>.</p>
+    <div>
+      <a href="https://github.com/smford/gha-local-lint" class="btn btn-primary" onclick="GhaAnalytics.trackEvent('repo_click')">View on GitHub</a>
+      <a href="https://github.com/smford/gha-local-lint/releases" class="btn btn-secondary" onclick="GhaAnalytics.trackDownloadClick('github_releases')">Download Release</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Quick Install</h2>
+      <pre><code># Install with Go (Zero-CGO)
+go install github.com/smford/gha-local-lint/cmd/gha-local-lint@latest
+
+# Or run via Homebrew
+brew tap smford/homebrew-tap
+brew install gha-local-lint</code></pre>
+    </div>
+
+    <div class="card">
+      <h2>Static Linting & Security Verification</h2>
+      <p>Checks workflow DAG circular dependencies, broken output references, unpinned actions, and script injections with exact line numbers:</p>
+      <pre><code># Lint all workflows in .github/workflows/
+gha-local-lint check
+
+# Automatically remediate script injections and pin actions
+gha-local-lint check --fix
+
+# Export SARIF for GitHub Code Scanning
+gha-local-lint check --format sarif &gt; results.sarif</code></pre>
+    </div>
+
+    <div class="card">
+      <h2>Dry-Run Workflow Simulation</h2>
+      <p>Simulates push and pull request events against mock contexts without burning runner minutes:</p>
+      <pre><code># Simulate push to main
+gha-local-lint simulate .github/workflows/ci.yml --event push --ref refs/heads/main
+
+# Simulate pull request with changed paths
+gha-local-lint simulate .github/workflows/ci.yml --event pull_request --detect-changes
+
+# Expand strategy matrix combinations
+gha-local-lint matrix .github/workflows/ci.yml</code></pre>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 gha-local-lint maintainers. Released under the MIT License.</p>
+  </footer>
+</body>
+</html>

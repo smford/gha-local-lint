@@ -1,0 +1,39 @@
+name: Pre-Commit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  pre-commit:
+    name: Shift-Left Pre-Commit Hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Go
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9dc2c8c793312c939e21c3daf7e6b7bc # v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Run Pre-Commit Hooks
+        uses: pre-commit/action@2c7b3805070dd613534e4569501f488e34449ff8 # v3.0.1
+        with:
+          extra_args: --all-files
