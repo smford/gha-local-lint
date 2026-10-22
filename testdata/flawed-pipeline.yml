@@ -1,0 +1,23 @@
+name: Broken Pipeline
+on: [push, pull_request]
+
+permissions: write-all
+
+jobs:
+  job_a:
+    runs-on: ubuntu-latest
+    needs: [job_b, nonexistent_job]
+    steps:
+      - name: Unpinned checkout
+        uses: actions/checkout@v4
+      - name: Script injection vulnerability
+        run: echo "PR title is ${{ github.event.pull_request.title }}"
+      - name: Broken step output
+        run: echo "Output is ${{ steps.missing_step.outputs.result }}"
+
+  job_b:
+    runs-on: ubuntu-latest
+    needs: [job_a]
+    steps:
+      - name: Broken needs output
+        run: echo "Needs output is ${{ needs.job_a.outputs.phantom_output }}"

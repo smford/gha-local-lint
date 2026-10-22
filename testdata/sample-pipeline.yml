@@ -1,0 +1,63 @@
+name: Production Release Pipeline
+on:
+  push:
+    branches: [main, 'release/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        go: ['1.22', '1.23']
+        include:
+          - os: ubuntu-latest
+            go: '1.23'
+            coverage: true
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@b4ffde5c8e7b9fb6c7d1e1647e0335de65dd7654
+      - name: Setup Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Run Tests
+        id: unit-tests
+        run: go test -v ./...
+      - name: Upload Coverage
+        if: matrix.coverage == true
+        run: echo "Uploading coverage..."
+
+  build:
+    name: Build Artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [test]
+    outputs:
+      artifact_id: ${{ steps.build-step.outputs.art_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde5c8e7b9fb6c7d1e1647e0335de65dd7654
+      - name: Compile Binary
+        id: build-step
+        run: |
+          mkdir -p dist
+          echo "art_id=gha-local-lint-v1.0.0" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Production Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to Cloud
+        run: echo "Deploying artifact ${{ needs.build.outputs.artifact_id }}"

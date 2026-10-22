@@ -1,0 +1,7 @@
+- id: gha-local-lint
+  name: gha-local-lint
+  description: Offline GitHub Actions Expression & Matrix Simulator
+  entry: gha-local-lint check
+  language: golang
+  files: ^\.github/workflows/.*\.ya?ml$
+  pass_filenames: true

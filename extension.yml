@@ -1,0 +1,5 @@
+name: gha-lint
+owner: asc
+repo: gha-local-lint
+description: Offline GitHub Actions Expression & Matrix Simulator
+executable: bin/gha-local-lint

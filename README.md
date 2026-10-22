@@ -1,1 +1,247 @@
 # gha-local-lint
+
+**Offline GitHub Actions Expression Evaluator, Matrix Expander, & Pipeline Simulator**
+
+[![Go Version](https://img.shields.io/badge/go-1.23%2B-blue.svg)](https://golang.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Zero CGO](https://img.shields.io/badge/CGO-disabled-success.svg)](Makefile)
+[![SARIF 2.1.0](https://img.shields.io/badge/SARIF-2.1.0-orange.svg)](https://sarifweb.azurewebsites.net/)
+
+`gha-local-lint` is a fast, single-binary static analyzer, remediation tool, and dry-run execution simulator for GitHub Actions workflows (`.github/workflows/*.ya?ml`). It resolves matrix combinations, evaluates `${{ ... }}` conditional expressions against synthetic webhook payloads, detects DAG cycles and broken output references, catches security anti-patterns (script injection), and auto-fixes workflow issues offline before `git push`.
+
+---
+
+## The Problem
+
+Engineers regularly burn dozens of `"fix ci"`, `"fix ci 2"`, `"debug matrix"` commits because standard YAML linters only check syntax. They do not:
+1. **Evaluate expressions (`if:`)**: Typos like `if: matrix.os = 'ubuntu'` or broken `github.ref == 'refs/heads/main'` conditions pass syntax checks but break in production.
+2. **Expand matrix permutations**: An unintended Cartesian product explosion (`os` × `node` × `db` × `redis` = 120 jobs) is only discovered after pushing.
+3. **Verify job dependencies (`needs:`) & outputs**: References like `needs.build.outputs.artifact_id` fail silently or at runtime when the upstream job output is misnamed or not forwarded.
+4. **Prevent script injection**: Untrusted inputs like `${{ github.event.pull_request.title }}` inside inline `run:` scripts introduce arbitrary command execution risks (OWASP CI/CD Top 10).
+
+`gha-local-lint` gives you total offline visibility into your CI pipeline without needing GitHub runner tokens or pushing dummy commits.
+
+---
+
+## Features
+
+- **Offline Expression Lexer & Evaluator**:
+  - Deterministic recursive-descent parser for GitHub Actions `${{ ... }}` expressions.
+  - Full operator support: `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, `!`, parentheses `( )`, and property dereferencing (`.`, `['...']`).
+  - GitHub Actions case-insensitivity semantics for context keys and string comparisons.
+  - Built-in functions: `contains()`, `startsWith()`, `endsWith()`, `format()`, `join()`, `toJSON()`, `fromJSON()`, `hashFiles()`.
+  - Status check functions: `success()`, `failure()`, `always()`, `cancelled()`, with automatic application of GHA's implicit `&& success()` rule.
+- **Cartesian & Dynamic Matrix Expander**:
+  - Models `strategy.matrix` with multi-dimensional Cartesian products.
+  - Supports `include` (both key augmentation and new row insertion) and `exclude` filtering.
+  - Supports dynamic matrix generation via `matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}`.
+  - Computes exact runner job counts and prints formatted ASCII tables or JSON.
+- **DAG, Semantic, & Security Workflow Linting**:
+  - Exact line and column numbers reported via `yaml.Node` AST.
+  - Circular dependency detection in `needs:` chains (e.g. `job_a -> job_b -> job_a`).
+  - Missing `needs:` targets and invalid output references (`needs.<job>.outputs.<key>` and `steps.<step>.outputs.<key>`).
+  - Reusable workflow (`workflow_call`) validation: verifies caller passes required `inputs:` and target file exists.
+  - Security checks: flags untrusted input injection inside `run:` blocks.
+  - Best-practice rules: flags missing `timeout-minutes`, unpinned third-party actions, and `permissions: write-all`.
+- **Automated Remediation (`--fix`)**:
+  - Auto-fixes script injections by extracting untrusted expressions into intermediate `env:` variables.
+  - Auto-pins known popular actions (e.g. `actions/checkout@v4`) to immutable 40-character commit SHAs.
+- **SARIF 2.1.0 & Pre-Commit Hook**:
+  - Exports standard SARIF format for integration with GitHub Code Scanning (`upload-sarif`).
+  - Includes `.pre-commit-hooks.yaml` for pre-commit git workflows.
+  - Includes `extension.yml` for GitHub CLI extension (`gh gha-lint`).
+- **Dry-Run Simulation**:
+  - Evaluates workflow triggers (`push`, `pull_request`, `release`, `workflow_dispatch`, `branches`, `paths`).
+  - Git diff integration: evaluate `paths:` filters against actual local git changes (`--diff-against` or `--detect-changes`).
+  - Mock job outputs with `--mock-output setup.matrix='[...]'`.
+  - Interactive terminal mode (`--interactive`) for on-the-fly event toggling.
+  - Visual tree display showing which jobs and steps **WILL RUN** vs **SKIPPED** (with exact reasons).
+  - Simulate failure scenarios using `--fail-job <job_id>` to verify fallback and notification logic (`if: failure()` / `if: always()`).
+
+---
+
+## Installation
+
+### From Source (Go 1.23+)
+
+```bash
+# Clone the repository
+git clone https://github.com/asc/gha-local-lint.git
+cd gha-local-lint
+
+# Build standalone binary (Zero-CGO)
+make build
+
+# Or install to $GOPATH/bin
+make install
+```
+
+### Pre-commit Integration
+
+Add this to your `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/asc/gha-local-lint
+    rev: v0.2.0
+    hooks:
+      - id: gha-local-lint
+```
+
+---
+
+## Quick Start & CLI Usage
+
+### 1. `check` — Semantic & Security Linting
+
+Validate workflow files for DAG cycles, broken outputs, unpinned actions, and script injection:
+
+```bash
+# Lint default workflows in .github/workflows/*.yml
+gha-local-lint check
+
+# Auto-fix unpinned actions and script injection vulnerabilities!
+gha-local-lint check --fix .github/workflows/*.yml
+
+# Enforce 40-character SHA pinning for third-party actions
+gha-local-lint check --require-sha-pin .github/workflows/*.yml
+
+# Export SARIF for GitHub Code Scanning
+gha-local-lint check --format sarif .github/workflows/*.yml > results.sarif
+
+# Output machine-readable JSON
+gha-local-lint check --format json .github/workflows/*.yml
+```
+
+---
+
+### 2. `simulate` — Dry-Run Execution Planner
+
+Simulate how GitHub Actions evaluates conditional expressions, trigger filters, and job dependencies:
+
+```bash
+# Simulate a push to main
+gha-local-lint simulate .github/workflows/release.yml --event push --ref refs/heads/main
+
+# Simulate a pull request
+gha-local-lint simulate .github/workflows/release.yml --event pull_request --ref refs/heads/feature/auth
+
+# Simulate with local git modified files (checks paths: and paths-ignore:)
+gha-local-lint simulate .github/workflows/ci.yml --detect-changes
+gha-local-lint simulate .github/workflows/ci.yml --diff-against origin/main
+
+# Simulate with mock outputs (e.g. dynamic matrix from an upstream job)
+gha-local-lint simulate .github/workflows/ci.yml --mock-output setup.targets='["api", "worker"]'
+
+# Simulate with a specific job failing to verify notification steps
+gha-local-lint simulate .github/workflows/release.yml --event push --fail-job test
+
+# Launch interactive simulation explorer
+gha-local-lint simulate .github/workflows/release.yml --interactive
+```
+
+**Example Output:**
+```text
+======================================================================
+ WORKFLOW SIMULATION: Production Release Pipeline (.github/workflows/release.yml)
+======================================================================
+  Trigger: triggered by event "pull_request" on ref "refs/heads/main"
+
+[WILL RUN] Job: test [go: 1.22, os: ubuntu-latest]
+      ✓ [WILL RUN] Checkout Code
+      ✓ [WILL RUN] Setup Go
+      ✓ [WILL RUN] Run Tests
+      - [SKIPPED]  Upload Coverage
+                   (reason: condition 'matrix.coverage == true' evaluated to false)
+
+[WILL RUN] Job: test [coverage: true, go: 1.23, os: ubuntu-latest]
+      ✓ [WILL RUN] Checkout Code
+      ✓ [WILL RUN] Setup Go
+      ✓ [WILL RUN] Run Tests
+      ✓ [WILL RUN] Upload Coverage
+
+[WILL RUN] Job: build
+      ✓ [WILL RUN] Checkout
+      ✓ [WILL RUN] Compile Binary
+
+[SKIPPED]  Job: deploy
+         Reason: condition 'github.event_name == 'push' && github.ref == 'refs/heads/main'' evaluated to false
+```
+
+---
+
+### 3. `matrix` — Inspect Matrix Expansions
+
+Inspect matrix permutations before triggering accidental runner quota spikes:
+
+```bash
+# Show matrix table for all jobs
+gha-local-lint matrix .github/workflows/release.yml
+
+# Filter by specific job
+gha-local-lint matrix .github/workflows/release.yml --job test
+
+# Output JSON
+gha-local-lint matrix .github/workflows/release.yml --format json
+```
+
+**Example Output:**
+```text
+Job: test (defined as "Unit & Integration Tests")
+#   | coverage | go   | os           
+----+----------+------+--------------
+1   | <nil>    | 1.22 | ubuntu-latest
+2   | <nil>    | 1.22 | macos-latest 
+3   | true     | 1.23 | ubuntu-latest
+4   | <nil>    | 1.23 | macos-latest 
+
+Total combinations: 4
+
+Grand Total Runner Jobs Across Evaluated Targets: 5
+```
+
+---
+
+## Rules Reference
+
+| Rule | Default Severity | Description |
+| :--- | :--- | :--- |
+| `dag-circular-dependency` | **ERROR** | Detects cycles in job `needs:` dependencies (e.g. `A -> B -> A`). |
+| `dag-missing-need` | **ERROR** | Job references an upstream job in `needs:` that does not exist. |
+| `invalid-job-output-reference` | **ERROR** | `needs.<job>.outputs.<name>` references an output not declared in upstream job's `outputs:` block. |
+| `invalid-step-reference` | **ERROR** | `steps.<step_id>.outputs.<name>` references a non-existent step ID in the same job. |
+| `missing-reusable-workflow` | **ERROR** | Caller references a reusable workflow file that does not exist. |
+| `missing-required-workflow-input` | **ERROR** | Reusable workflow call is missing required `with:` input parameters. |
+| `script-injection` | **ERROR** | Untrusted context (`github.event.pull_request.title`, `head_ref`, etc.) directly interpolated in inline `run:` script. |
+| `unpinned-action` | **WARNING** (ERROR with `--require-sha-pin`) | Third-party action is not pinned to a 40-character commit SHA. |
+| `missing-workflow-permissions` | **WARNING** | Workflow lacks a top-level `permissions:` block. |
+| `broad-permissions` | **WARNING** | Workflow or job defines overly permissive `permissions: write-all`. |
+| `missing-timeout-minutes` | **WARNING** | Job is missing `timeout-minutes`, exposing runners to hung tasks. |
+
+---
+
+## Development & Testing
+
+Run all unit tests with race detection:
+
+```bash
+make test
+```
+
+Build the release binary:
+
+```bash
+make build
+```
+
+Run test suite against sample workflows:
+
+```bash
+make lint-self
+```
+
+---
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
