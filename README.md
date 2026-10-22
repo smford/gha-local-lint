@@ -414,24 +414,58 @@ simulate:
 
 ---
 
+## Automated Remediation Philosophy (`--fix`)
+
+Like modern linters (`eslint --fix`, `golangci-lint --fix`), `gha-local-lint` adheres to a strict safety model:
+> **Automated fixes must be deterministic and safe.** If remediating an issue requires architectural choice or guessing developer intent, the tool reports the issue with exact line/column coordinates for human review instead of making risky assumptions that could break production pipelines.
+
+### What `--fix` Automatically Remediates
+
+| Rule | Remediation Applied |
+| :--- | :--- |
+| `missing-timeout-minutes` | Injects `timeout-minutes: 60` with exact whitespace indentation matching existing job keys. |
+| `missing-workflow-permissions` | Injects least-privilege top-level `permissions:\n  contents: read` directly above `jobs:`. |
+| `deprecated-runner` | Upgrades retired/deprecated runner labels (e.g. `ubuntu-18.04`/`20.04` → `ubuntu-22.04`, `macos-11` → `macos-13`, `windows-2016` → `windows-2022`). |
+| `script-injection` | Rewrites vulnerable inline `${{ github.event... }}` into safe intermediate `env:` variables (`INPUT_...`). |
+| `unpinned-action` *(Known)* | Pins popular actions (`actions/checkout@v4`, `setup-go@v5`, `cache@v4`, etc.) to immutable 40-character commit SHAs. |
+| `invalid-needs-reference` *(Self)* | Rewrites self-referencing `${{ needs.<this_job>.outputs.<key> }}` to the underlying `${{ steps.<step>.outputs.<key> }}`. |
+
+### Why Some Rules Require Manual Review (Not Auto-Fixed)
+
+For semantic and architectural issues, automated guessing could introduce security vulnerabilities, race conditions, or silent deployment failures:
+
+| Rule | Why Automated Fixing is Intentionally Avoided |
+| :--- | :--- |
+| `hardcoded-secrets` | An automated tool cannot determine your configured repository secret names in GitHub Settings (e.g. `${{ secrets.PROD_AWS_KEY }}` vs `${{ secrets.DEV_AWS_KEY }}`). Exposed credentials must also be revoked immediately in the cloud provider. |
+| `dag-circular-dependency` | In circular dependencies (`A ⇄ B`), choosing which dependency edge to sever is an architectural pipeline design decision. |
+| `dag-missing-need` | Deleting a missing upstream job from `needs: [...]` could trigger deployments prematurely before prerequisite build or test stages complete. |
+| `invalid-job-output-reference` | If `needs.build.outputs.artifact_id` is undeclared, guessing whether the upstream job omitted the output or whether there is a typo requires human verification. |
+| `invalid-step-reference` | If `steps.build_step.outputs.id` does not exist, only the pipeline author knows which step produces the required payload. |
+| `missing-reusable-workflow` | Missing reusable workflow files cannot be synthesized out of thin air. |
+| `missing-required-workflow-input` | Mandatory parameters without defaults require explicit caller values. |
+| `shell-syntax` | Arbitrary bash syntax errors (e.g. unmatched quotes, unclosed `if`/`fi`) require human coding to preserve script logic. |
+
+---
+
 ## Rules Reference
 
-| Rule | Default Severity | Description |
-| :--- | :--- | :--- |
-| `dag-circular-dependency` | **ERROR** | Detects cycles in job `needs:` dependencies (e.g. `A -> B -> A`). |
-| `dag-missing-need` | **ERROR** | Job references an upstream job in `needs:` that does not exist. |
-| `invalid-job-output-reference` | **ERROR** | `needs.<job>.outputs.<name>` references an output not declared in upstream job's `outputs:` block. |
-| `invalid-step-reference` | **ERROR** | `steps.<step_id>.outputs.<name>` references a non-existent step ID in the same job. |
-| `missing-reusable-workflow` | **ERROR** | Caller references a reusable workflow file that does not exist. |
-| `missing-required-workflow-input` | **ERROR** | Reusable workflow call is missing required `with:` input parameters. |
-| `script-injection` | **ERROR** | Untrusted context (`github.event.pull_request.title`, `head_ref`, etc.) directly interpolated in inline `run:` script. |
-| `shell-syntax` | **ERROR** | Shell syntax error detected inside an inline `run:` block. |
-| `hardcoded-secrets` | **ERROR** | Plaintext GitHub PATs (`ghp_`, `github_pat_`), AWS credentials, Slack webhooks, or private keys detected in workflow files. |
-| `deprecated-runner` | **WARNING** / **ERROR** | Identifies retired or deprecated GitHub runners (`ubuntu-18.04`, `ubuntu-20.04`, `macos-11`, etc.) and recommends current upgrades. |
-| `unpinned-action` | **WARNING** (ERROR with `--require-sha-pin`) | Third-party action is not pinned to a 40-character commit SHA. |
-| `missing-workflow-permissions` | **WARNING** | Workflow lacks a top-level `permissions:` block. |
-| `broad-permissions` | **WARNING** | Workflow or job defines overly permissive `permissions: write-all`. |
-| `missing-timeout-minutes` | **WARNING** | Job is missing `timeout-minutes`, exposing runners to hung tasks. |
+| Rule | Default Severity | Auto-Fixable? | Description |
+| :--- | :--- | :--- | :--- |
+| `dag-circular-dependency` | **ERROR** | Manual | Detects cycles in job `needs:` dependencies (e.g. `A -> B -> A`). |
+| `dag-missing-need` | **ERROR** | Manual | Job references an upstream job in `needs:` that does not exist. |
+| `invalid-job-output-reference` | **ERROR** | Manual | `needs.<job>.outputs.<name>` references an output not declared in upstream job's `outputs:` block. |
+| `invalid-step-reference` | **ERROR** | Manual | `steps.<step_id>.outputs.<name>` references a non-existent step ID in the same job. |
+| `invalid-needs-reference` | **ERROR** | ✓ Partial (Self-references) | Flags invalid `needs` expressions, auto-resolving inner self-references to step outputs. |
+| `missing-reusable-workflow` | **ERROR** | Manual | Caller references a reusable workflow file that does not exist. |
+| `missing-required-workflow-input` | **ERROR** | Manual | Reusable workflow call is missing required `with:` input parameters. |
+| `script-injection` | **ERROR** | ✓ Yes | Untrusted context (`github.event.pull_request.title`, `head_ref`, etc.) directly interpolated in inline `run:` script. |
+| `shell-syntax` | **ERROR** | Manual | Shell syntax error detected inside an inline `run:` block. |
+| `hardcoded-secrets` | **ERROR** | Manual | Plaintext GitHub PATs (`ghp_`, `github_pat_`), AWS credentials, Slack webhooks, or private keys detected in workflow files. |
+| `deprecated-runner` | **WARNING** / **ERROR** | ✓ Yes | Identifies retired or deprecated GitHub runners (`ubuntu-18.04`, `ubuntu-20.04`, `macos-11`, etc.) and recommends current upgrades. |
+| `unpinned-action` | **WARNING** (ERROR with `--require-sha-pin`) | ✓ Partial (Known actions) | Third-party action is not pinned to a 40-character commit SHA. |
+| `missing-workflow-permissions` | **WARNING** | ✓ Yes | Workflow lacks a top-level `permissions:` block. |
+| `broad-permissions` | **WARNING** | Manual | Workflow or job defines overly permissive `permissions: write-all`. |
+| `missing-timeout-minutes` | **WARNING** | ✓ Yes | Job is missing `timeout-minutes`, exposing runners to hung tasks. |
 
 ---
 

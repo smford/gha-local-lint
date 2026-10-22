@@ -138,7 +138,7 @@
 go install github.com/smford/gha-local-lint/cmd/gha-local-lint@latest
 
 # Or run via Homebrew
-brew tap smford/homebrew-tap
+brew tap smford/tap
 brew install gha-local-lint</code></pre>
     </div>
 
@@ -148,11 +148,24 @@ brew install gha-local-lint</code></pre>
       <pre><code># Lint all workflows in .github/workflows/
 gha-local-lint check
 
-# Automatically remediate script injections and pin actions
+# Automatically remediate timeouts, permissions, injections, and pins
 gha-local-lint check --fix
 
 # Export SARIF for GitHub Code Scanning
 gha-local-lint check --format sarif &gt; results.sarif</code></pre>
+    </div>
+
+    <div class="card">
+      <h2>Automated Remediations (--fix)</h2>
+      <p>Applies safe, deterministic fixes across 6 categories while preserving architectural pipeline intent:</p>
+      <ul style="margin-left: 1.5rem; line-height: 1.8;">
+        <li><strong>Job Timeouts:</strong> Injects <code>timeout-minutes: 60</code> with matching indentation.</li>
+        <li><strong>Permissions:</strong> Injects least-privilege <code>permissions: contents: read</code> blocks.</li>
+        <li><strong>Deprecated Runners:</strong> Upgrades retired labels (e.g. <code>ubuntu-18.04/20.04</code> to <code>ubuntu-22.04</code>).</li>
+        <li><strong>Script Injections:</strong> Extracts untrusted context variables into intermediate <code>env:</code> vars.</li>
+        <li><strong>Action Pinning:</strong> Pins known official actions to immutable 40-character commit SHAs.</li>
+        <li><strong>Self-References:</strong> Rewrites invalid <code>needs.&lt;this_job&gt;.outputs</code> to <code>steps.&lt;step&gt;.outputs</code>.</li>
+      </ul>
     </div>
 
     <div class="card">
