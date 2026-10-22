@@ -49,14 +49,14 @@ jobs:
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
 
       - name: Build Documentation with md-web-renderer
-        uses: smford/md-web-renderer@eaf2fd9902fcab78ce9f85ffe98f2b0409f4b0cb # v1.2.1
+        uses: smford/md-web-renderer@bc86d4587687ccb70f68ecc4766e72176514b596 # v1.2.2
         with:
           path: 'docs'
           title: 'gha-local-lint Documentation'
           repo-url: 'https://github.com/smford/gha-local-lint'
           upload-pages-artifact: 'false'
           fallback-readme: 'true'
-          check-links: 'false'
+          check-links: 'true'
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
