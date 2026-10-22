@@ -9,6 +9,7 @@
 [![Go Version](https://img.shields.io/badge/go-1.23%2B-blue.svg)](https://golang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Zero CGO](https://img.shields.io/badge/CGO-disabled-success.svg)](Makefile)
+[![Documentation](https://img.shields.io/badge/docs-GitHub_Pages-blue.svg)](https://smford.github.io/gha-local-lint/)
 [![SARIF 2.1.0](https://img.shields.io/badge/SARIF-2.1.0-orange.svg)](https://sarifweb.azurewebsites.net/)
 
 `gha-local-lint` is a fast, single-binary static analyzer, remediation tool, and dry-run execution simulator for GitHub Actions workflows (`.github/workflows/*.ya?ml`). It resolves matrix combinations, evaluates `${{ ... }}` conditional expressions against synthetic webhook payloads, detects DAG cycles and broken output references, catches security anti-patterns (script injection), and auto-fixes workflow issues offline before `git push`.
@@ -121,10 +122,28 @@ Run `gha-local-lint` directly in any GitHub Actions workflow via [`action.yml`](
 
 ```yaml
 - name: Lint Workflow Files
-  uses: smford/gha-local-lint@v0.4.0
+  uses: smford/gha-local-lint@v0.5.0
   with:
     require-sha-pin: true
     format: text
+```
+
+---
+
+## Documentation
+
+Interactive documentation is published on GitHub Pages:
+
+👉 **[https://smford.github.io/gha-local-lint/](https://smford.github.io/gha-local-lint/)**
+
+Powered by [**md-web-renderer**](https://github.com/smford/md-web-renderer), our docs engine renders pure Markdown files with zero build steps, instant search (⌘K), dark mode, and offline caching.
+
+To preview documentation locally with any static web server:
+
+```bash
+# Preview via Python's built-in HTTP server:
+python3 -m http.server -d docs 8000
+# Open http://localhost:8000
 ```
 
 ---

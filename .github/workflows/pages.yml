@@ -4,12 +4,14 @@ on:
   push:
     paths:
       - 'docs/**'
+    branches:
+      - main
   release:
     types: [published]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version to publish in documentation (e.g. v0.2.0)'
+        description: 'Release version to publish in documentation (e.g. v0.5.0)'
         required: false
         default: ''
   workflow_call:
@@ -21,7 +23,7 @@ on:
         default: ''
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -42,38 +44,19 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Determine Target Version
-        id: version
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TARGET="${INPUT_VERSION}"
-          if [ -z "$TARGET" ]; then
-            TARGET=$(gh release view --json tagName -q .tagName 2>/dev/null || git describe --tags --abbrev=0 2>/dev/null || echo "v0.2.0")
-          fi
-          echo "tag=${TARGET}" >> "$GITHUB_OUTPUT"
-
-      - name: Inject Version into Documentation
-        run: |
-          scripts/update-docs-version.sh "${{ steps.version.outputs.tag }}" docs/index.html
-
-      - name: Commit Updated Documentation
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/
-          if git diff --staged --quiet; then
-            echo "No documentation changes to commit."
-          else
-            git commit -m "docs: update release version to ${{ steps.version.outputs.tag }} [skip ci]"
-            git push origin HEAD:${{ github.ref }} || true
-          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+
+      - name: Build Documentation with md-web-renderer
+        uses: smford/md-web-renderer@eaf2fd9902fcab78ce9f85ffe98f2b0409f4b0cb # v1.2.1
+        with:
+          path: 'docs'
+          title: 'gha-local-lint Documentation'
+          repo-url: 'https://github.com/smford/gha-local-lint'
+          upload-pages-artifact: 'false'
+          fallback-readme: 'true'
+          check-links: 'true'
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1

@@ -1,0 +1,5 @@
+* [Overview](index.md)
+* [Installation](installation.md)
+* [CLI Commands](commands.md)
+* [Rules & Auto-Fixes](rules.md)
+* [Changelog](changelog.md)
