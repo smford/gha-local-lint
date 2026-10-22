@@ -233,12 +233,12 @@ gha-local-lint matrix .github/workflows/release.yml --format json
 **Example Output:**
 ```text
 Job: test (defined as "Unit & Integration Tests")
-#   | coverage | go   | os           
+#   | coverage | go   | os
 ----+----------+------+--------------
 1   | <nil>    | 1.22 | ubuntu-latest
-2   | <nil>    | 1.22 | macos-latest 
+2   | <nil>    | 1.22 | macos-latest
 3   | true     | 1.23 | ubuntu-latest
-4   | <nil>    | 1.23 | macos-latest 
+4   | <nil>    | 1.23 | macos-latest
 
 Total combinations: 4
 
@@ -272,12 +272,12 @@ Total Runner Jobs per Run: 5 (Linux: 3, macOS: 1, Windows: 1)
 Estimated Compute per Run: 50 runner-minutes (~$0.1040/run)
 Monthly Estimate (100 runs): 5000 runner-minutes (~$10.40/month)
 
-Job ID               | OS       | Runners      | Est. Mins    | Cost / Month   
+Job ID               | OS       | Runners      | Est. Mins    | Cost / Month
 ---------------------+----------+--------------+--------------+----------------
-lint                 | linux    | 1            | 10           | $8.00          
-test                 | linux    | 2            | 20           | $16.00         
-cross-compile        | macos    | 1            | 10           | $64.00         
-windows-build        | windows  | 1            | 10           | $16.00         
+lint                 | linux    | 1            | 10           | $8.00
+test                 | linux    | 2            | 20           | $16.00
+cross-compile        | macos    | 1            | 10           | $64.00
+windows-build        | windows  | 1            | 10           | $16.00
 ```
 
 ---

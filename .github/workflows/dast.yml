@@ -45,6 +45,7 @@ jobs:
           target: 'http://localhost:8080'
           rules_file_name: '.zap/rules.tsv'
           fail_action: false
+          allow_issue_writing: false
 
       - name: Teardown Mock Service
         if: always()
