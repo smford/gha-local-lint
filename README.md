@@ -55,6 +55,10 @@ Engineers regularly burn dozens of `"fix ci"`, `"fix ci 2"`, `"debug matrix"` co
 - **Automated Remediation (`--fix`)**:
   - Auto-fixes script injections by extracting untrusted expressions into intermediate `env:` variables.
   - Auto-pins known popular actions (e.g. `actions/checkout@v4`) to immutable 40-character commit SHAs.
+  - Auto-injects missing job `timeout-minutes: 60` with exact whitespace indentation.
+  - Auto-injects missing workflow top-level `permissions: contents: read` blocks.
+  - Auto-upgrades retired and deprecated runner labels (`ubuntu-18.04`, `ubuntu-20.04`, `macos-11`).
+  - Auto-resolves invalid self-referencing job outputs (`needs.<this_job>.outputs` -> `steps.<step>.outputs`).
 - **SARIF 2.1.0 & Pre-Commit Hook**:
   - Exports standard SARIF format for integration with GitHub Code Scanning (`upload-sarif`).
   - Includes `.pre-commit-hooks.yaml` for pre-commit git workflows.
@@ -135,7 +139,7 @@ Validate workflow files for DAG cycles, broken outputs, unpinned actions, and sc
 # Lint default workflows in .github/workflows/*.yml
 gha-local-lint check
 
-# Auto-fix unpinned actions and script injection vulnerabilities!
+# Auto-fix unpinned actions, script injections, missing timeouts, and permissions!
 gha-local-lint check --fix .github/workflows/*.yml
 
 # Enforce 40-character SHA pinning for third-party actions

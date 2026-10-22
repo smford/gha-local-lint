@@ -125,7 +125,7 @@ func runCheck(args []string) int {
 	requireSHAPin := fs.Bool("require-sha-pin", false, "Fail with an error if third-party actions are not pinned to a 40-character commit SHA")
 	failOnWarning := fs.Bool("fail-on-warning", false, "Exit with non-zero status if warnings are found")
 	format := fs.String("format", "text", "Output format: text, json, sarif, or github")
-	fix := fs.Bool("fix", false, "Automatically apply safe remediations (e.g. pin known actions, rewrite script injections)")
+	fix := fs.Bool("fix", false, "Automatically apply safe remediations (pin known actions, rewrite script injections, add missing timeouts & permissions, resolve self-references)")
 	configPath := fs.String("config", "", "Path to custom configuration file (.gha-lint.yaml)")
 	paths, err := parseFlagsAndArgs(fs, args)
 	if err != nil {
@@ -170,6 +170,8 @@ func runCheck(args []string) int {
 		}
 		if totalFixed > 0 {
 			fmt.Printf("Total fixes applied: %d\n\n", totalFixed)
+		} else {
+			fmt.Println("ℹ No automatic fixes could be applied to the specified workflow file(s).")
 		}
 	}
 
