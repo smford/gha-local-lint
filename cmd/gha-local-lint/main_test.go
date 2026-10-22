@@ -77,6 +77,34 @@ func TestCLICommands(t *testing.T) {
 	if !strings.Contains(string(out), "Deploy to Cloud") {
 		t.Errorf("unexpected output: %s", string(out))
 	}
+
+	// 7. Test expr command
+	cmd = exec.Command(binPath, "expr", "contains('hello world', 'world') && !false")
+	out, err = cmd.CombinedOutput()
+	if err != nil || !strings.Contains(string(out), "true (bool)") {
+		t.Errorf("expr evaluation failed: %v, out: %s", err, string(out))
+	}
+
+	// 8. Test graph command
+	cmd = exec.Command(binPath, "graph", "../../testdata/sample-pipeline.yml", "--format", "mermaid")
+	out, err = cmd.CombinedOutput()
+	if err != nil || !strings.Contains(string(out), "flowchart TD") {
+		t.Errorf("graph generation failed: %v, out: %s", err, string(out))
+	}
+
+	// 9. Test completion command
+	cmd = exec.Command(binPath, "completion", "zsh")
+	out, err = cmd.CombinedOutput()
+	if err != nil || !strings.Contains(string(out), "#compdef gha-local-lint") {
+		t.Errorf("completion generation failed: %v, out: %s", err, string(out))
+	}
+
+	// 10. Test check --format github
+	cmd = exec.Command(binPath, "check", "--format", "github", "../../testdata/flawed-pipeline.yml")
+	out, _ = cmd.CombinedOutput()
+	if !strings.Contains(string(out), "::error") || !strings.Contains(string(out), "::warning") {
+		t.Errorf("expected GitHub workflow command annotations: %s", string(out))
+	}
 }
 
 func init() {

@@ -250,6 +250,7 @@ func checkJob(wf *workflow.Workflow, job *workflow.Job, opts LintOptions) []Find
 		// Validate script injection in run:
 		if step.Run != "" {
 			findings = append(findings, checkScriptInjection(wf, job, step)...)
+			findings = append(findings, checkShellSyntax(wf, job, step)...)
 		}
 
 		// Validate references in step

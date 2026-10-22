@@ -41,6 +41,12 @@ func main() {
 		os.Exit(runSimulate(args))
 	case "matrix":
 		os.Exit(runMatrix(args))
+	case "graph":
+		os.Exit(runGraph(args))
+	case "expr":
+		os.Exit(runExpr(args))
+	case "completion":
+		os.Exit(runCompletion(args))
 	case "version", "--version", "-v":
 		format := "text"
 		if len(args) > 0 && (args[0] == "--format=json" || args[0] == "-json") {
@@ -85,10 +91,13 @@ func printUsage() {
   gha-local-lint <command> [arguments]
 
 Commands:
-  check     Statically validate workflow files for DAG cycles, broken references, and security issues
-  simulate  Dry-run simulate workflow execution against synthetic event contexts
-  matrix    Inspect and display expanded matrix combinations
-  version   Display version, license, and repository information
+  check       Statically validate workflow files for DAG cycles, broken references, and security
+  simulate    Dry-run simulate workflow execution against synthetic event contexts
+  matrix      Inspect and display expanded matrix combinations
+  graph       Export workflow DAG as Mermaid.js or Graphviz DOT diagram
+  expr        Evaluate GitHub Actions expressions directly or in interactive REPL
+  completion  Generate shell autocompletion script (bash, zsh, fish)
+  version     Display version, license, and repository information
 
 Run 'gha-local-lint <command> --help' for details on a specific command.`)
 }
@@ -199,6 +208,9 @@ func runCheck(args []string) int {
 			return 1
 		}
 		fmt.Println(string(data))
+	case "github":
+		fmt.Print(rules.FormatGitHubAnnotations(allFindings))
+		_ = rules.WriteStepSummary(rules.FormatStepSummary(allFindings, len(fileList)))
 	default:
 		if len(allFindings) == 0 {
 			fmt.Printf("✓ Checked %d workflow file(s): 0 issues found\n", len(fileList))
@@ -208,6 +220,7 @@ func runCheck(args []string) int {
 			}
 			fmt.Printf("\nTotal issues: %d across %d file(s)\n", len(allFindings), len(fileList))
 		}
+		_ = rules.WriteStepSummary(rules.FormatStepSummary(allFindings, len(fileList)))
 	}
 
 	if hasErrors || (*failOnWarning && hasWarnings) {

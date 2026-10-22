@@ -216,7 +216,69 @@ Total combinations: 4
 Grand Total Runner Jobs Across Evaluated Targets: 5
 ```
 
-### 4. `version` — Inspect Version, License, & Links
+### 4. `graph` — Export Visual Pipeline DAGs
+
+Export job dependencies as Mermaid.js or Graphviz DOT flowcharts to embed in pull requests or architecture documentation:
+
+```bash
+# Export Mermaid diagram (compatible with GitHub Markdown)
+gha-local-lint graph .github/workflows/ci.yml --format=mermaid
+
+# Export Graphviz DOT format
+gha-local-lint graph .github/workflows/ci.yml --format=dot
+```
+
+**Example Mermaid Output:**
+```mermaid
+flowchart TD
+    lint["Lint & Code Hygiene"]
+    test["Test Suite with Race & Coverage"]
+    build_matrix["Cross-Compilation (3 matrix jobs)"]
+    docker_build["Docker Buildx Validation"]
+    goreleaser_check["GoReleaser Check"]
+    lint --> test
+    lint --> build_matrix
+    test --> docker_build
+    build_matrix --> docker_build
+```
+
+---
+
+### 5. `expr` — Expression Evaluator & Interactive REPL
+
+Evaluate GitHub Actions expressions directly on the command line or launch an interactive REPL session:
+
+```bash
+# One-shot expression evaluation
+gha-local-lint expr "contains('refs/heads/main', 'main') && !false"
+
+# Evaluate with mock context JSON
+gha-local-lint expr --context '{"github":{"actor":"octocat"}}' "github.actor == 'OCTOCAT'"
+
+# Launch interactive REPL
+gha-local-lint expr --interactive
+```
+
+---
+
+### 6. `completion` — Shell Autocompletion
+
+Generate fast autocompletion scripts for your shell:
+
+```bash
+# Zsh
+source <(gha-local-lint completion zsh)
+
+# Bash
+source <(gha-local-lint completion bash)
+
+# Fish
+gha-local-lint completion fish | source
+```
+
+---
+
+### 7. `version` — Inspect Version, License, & Links
 
 Inspect the compiled release version, commit hash, build date, license, and repository links:
 
@@ -231,8 +293,8 @@ gha-local-lint version --format=json
 **Example Output:**
 ```text
 gha-local-lint v0.3.0
-  Commit:  21ea990
-  Date:    2026-10-22T13:30:00Z
+  Commit:  3436034
+  Date:    2026-10-22T13:35:30Z
   License: MIT License
   Repo:    https://github.com/smford/gha-local-lint
   Docs:    https://smford.github.io/gha-local-lint
@@ -269,6 +331,7 @@ make bench
 | `missing-reusable-workflow` | **ERROR** | Caller references a reusable workflow file that does not exist. |
 | `missing-required-workflow-input` | **ERROR** | Reusable workflow call is missing required `with:` input parameters. |
 | `script-injection` | **ERROR** | Untrusted context (`github.event.pull_request.title`, `head_ref`, etc.) directly interpolated in inline `run:` script. |
+| `shell-syntax` | **ERROR** | Shell syntax error detected inside an inline `run:` block. |
 | `unpinned-action` | **WARNING** (ERROR with `--require-sha-pin`) | Third-party action is not pinned to a 40-character commit SHA. |
 | `missing-workflow-permissions` | **WARNING** | Workflow lacks a top-level `permissions:` block. |
 | `broad-permissions` | **WARNING** | Workflow or job defines overly permissive `permissions: write-all`. |
