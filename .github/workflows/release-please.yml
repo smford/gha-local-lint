@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Run Release Please
-        uses: googleapis/release-please-action@7987652d64c45816db5417d5456f086b196718dd # v4.1.3
+        uses: googleapis/release-please-action@7987652d64b4581673a76e33ad5e98e3dd56832f # v4.1.3
         id: release
         with:
           release-type: go

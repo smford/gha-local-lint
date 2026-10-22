@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Repository Metrics & PR Quality Gate
-        uses: smford/gh-stats@78262fe7ae74457ee57fb6c9bb8924b819f074d3 # v1.0.0
+        uses: smford/gh-stats@2a54880d552da012a17d0b4e58d8d3ce9d643942 # v0.11.3
         with:
           fail-on: 'CRITICAL'
           comment-on-pr: 'true'

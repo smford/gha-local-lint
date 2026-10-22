@@ -124,11 +124,11 @@ func ParseWorkflowBytes(path string, data []byte) (*Workflow, error) {
 	}
 
 	wf := &Workflow{
-		Path:     path,
-		RawNode:  &root,
-		Jobs:     make(map[string]*Job),
-		Env:      make(map[string]string),
-		Pos:      Position{Line: docNode.Line, Column: docNode.Column},
+		Path:    path,
+		RawNode: &root,
+		Jobs:    make(map[string]*Job),
+		Env:     make(map[string]string),
+		Pos:     Position{Line: docNode.Line, Column: docNode.Column},
 	}
 
 	for i := 0; i < len(docNode.Content); i += 2 {
