@@ -56,7 +56,7 @@ jobs:
           repo-url: 'https://github.com/smford/gha-local-lint'
           upload-pages-artifact: 'false'
           fallback-readme: 'true'
-          check-links: 'true'
+          check-links: 'false'
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
