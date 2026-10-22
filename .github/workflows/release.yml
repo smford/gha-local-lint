@@ -22,6 +22,8 @@ jobs:
     name: Production Release & Distribution
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -53,7 +55,7 @@ jobs:
           gh release upload "${{ github.ref_name }}" Formula/gha-local-lint.rb --clobber
 
       - name: Update Homebrew Tap Repository
-        if: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN != '' }}
+        if: env.HOMEBREW_TAP_TOKEN != ''
         env:
           HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           TAG_NAME: ${{ github.ref_name }}
