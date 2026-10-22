@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/smford/gha-local-lint/compare/v0.5.0...v0.5.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **ci:** pin md-web-renderer to v1.2.2 fixing index.html truncation ([cbca8d4](https://github.com/smford/gha-local-lint/commit/cbca8d4ff02be812e54671777cd586c45434fb92))
+
 ## [0.5.0](https://github.com/smford/gha-local-lint/compare/v0.4.0...v0.5.0) (2026-10-22)
 
 
