@@ -17,7 +17,12 @@ import (
 )
 
 var (
-	version = "0.2.0"
+	version = "0.3.0"
+	commit  = "dev"
+	date    = "unknown"
+	license = "MIT License"
+	repoURL = "https://github.com/smford/gha-local-lint"
+	docsURL = "https://smford.github.io/gha-local-lint"
 )
 
 func main() {
@@ -37,7 +42,11 @@ func main() {
 	case "matrix":
 		os.Exit(runMatrix(args))
 	case "version", "--version", "-v":
-		fmt.Printf("gha-local-lint v%s\n", version)
+		format := "text"
+		if len(args) > 0 && (args[0] == "--format=json" || args[0] == "-json") {
+			format = "json"
+		}
+		printVersion(format)
 		os.Exit(0)
 	case "help", "--help", "-h":
 		printUsage()
@@ -48,17 +57,38 @@ func main() {
 	}
 }
 
-func printUsage() {
-	fmt.Println(`gha-local-lint — Offline GitHub Actions Expression & Matrix Simulator
+func printVersion(format string) {
+	if format == "json" {
+		data, _ := json.MarshalIndent(map[string]string{
+			"version": version,
+			"commit":  commit,
+			"date":    date,
+			"license": license,
+			"repo":    repoURL,
+			"docs":    docsURL,
+		}, "", "  ")
+		fmt.Println(string(data))
+		return
+	}
+	fmt.Printf("gha-local-lint %s\n", version)
+	fmt.Printf("  Commit:  %s\n", commit)
+	fmt.Printf("  Date:    %s\n", date)
+	fmt.Printf("  License: %s\n", license)
+	fmt.Printf("  Repo:    %s\n", repoURL)
+	fmt.Printf("  Docs:    %s\n", docsURL)
+}
 
-Usage:
+func printUsage() {
+	fmt.Printf("gha-local-lint %s — Offline GitHub Actions Expression & Matrix Simulator\n", version)
+	fmt.Printf("License: %s | Source: %s\n\n", license, repoURL)
+	fmt.Println(`Usage:
   gha-local-lint <command> [arguments]
 
 Commands:
   check     Statically validate workflow files for DAG cycles, broken references, and security issues
   simulate  Dry-run simulate workflow execution against synthetic event contexts
   matrix    Inspect and display expanded matrix combinations
-  version   Display version information
+  version   Display version, license, and repository information
 
 Run 'gha-local-lint <command> --help' for details on a specific command.`)
 }

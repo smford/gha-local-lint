@@ -1,0 +1,58 @@
+name: 'gha-local-lint'
+description: 'Fast, offline static analyzer and dry-run simulator for GitHub Actions workflows'
+author: 'smford'
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  paths:
+    description: 'Path pattern(s) of workflow files to check'
+    required: false
+    default: '.github/workflows/*.yml'
+  require-sha-pin:
+    description: 'Require third-party actions to be pinned to 40-character commit SHA'
+    required: false
+    default: 'true'
+  format:
+    description: 'Output format: text, json, or sarif'
+    required: false
+    default: 'text'
+  fail-on-warning:
+    description: 'Exit with failure if warnings are detected'
+    required: false
+    default: 'false'
+  fix:
+    description: 'Automatically apply safe remediations (pin actions, rewrite script injections)'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run gha-local-lint
+      shell: bash
+      env:
+        INPUT_PATHS: ${{ inputs.paths }}
+        INPUT_REQUIRE_SHA_PIN: ${{ inputs.require-sha-pin }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_FAIL_ON_WARNING: ${{ inputs.fail-on-warning }}
+        INPUT_FIX: ${{ inputs.fix }}
+      run: |
+        ARGS=()
+        if [ "$INPUT_REQUIRE_SHA_PIN" = "true" ]; then
+          ARGS+=(--require-sha-pin)
+        fi
+        if [ "$INPUT_FAIL_ON_WARNING" = "true" ]; then
+          ARGS+=(--fail-on-warning)
+        fi
+        if [ "$INPUT_FIX" = "true" ]; then
+          ARGS+=(--fix)
+        fi
+        ARGS+=(--format "$INPUT_FORMAT")
+
+        if command -v gha-local-lint >/dev/null 2>&1; then
+          gha-local-lint check "${ARGS[@]}" $INPUT_PATHS
+        else
+          go run "${{ github.action_path }}/cmd/gha-local-lint" check "${ARGS[@]}" $INPUT_PATHS
+        fi

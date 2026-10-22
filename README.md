@@ -2,6 +2,10 @@
 
 **Offline GitHub Actions Expression Evaluator, Matrix Expander, & Pipeline Simulator**
 
+[![CI](https://github.com/smford/gha-local-lint/actions/workflows/ci.yml/badge.svg)](https://github.com/smford/gha-local-lint/actions/workflows/ci.yml)
+[![SAST](https://github.com/smford/gha-local-lint/actions/workflows/sast.yml/badge.svg)](https://github.com/smford/gha-local-lint/actions/workflows/sast.yml)
+[![Scorecard](https://github.com/smford/gha-local-lint/actions/workflows/scorecard.yml/badge.svg)](https://github.com/smford/gha-local-lint/actions/workflows/scorecard.yml)
+[![Pre-Commit](https://github.com/smford/gha-local-lint/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/smford/gha-local-lint/actions/workflows/pre-commit.yml)
 [![Go Version](https://img.shields.io/badge/go-1.23%2B-blue.svg)](https://golang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Zero CGO](https://img.shields.io/badge/CGO-disabled-success.svg)](Makefile)
@@ -82,10 +86,22 @@ Add this to your `.pre-commit-config.yaml`:
 
 ```yaml
 repos:
-  - repo: https://github.com/asc/gha-local-lint
-    rev: v0.2.0
+  - repo: https://github.com/smford/gha-local-lint
+    rev: v0.3.0
     hooks:
       - id: gha-local-lint
+```
+
+### GitHub Action Integration
+
+Run `gha-local-lint` directly in any GitHub Actions workflow via [`action.yml`](action.yml):
+
+```yaml
+- name: Lint Workflow Files
+  uses: smford/gha-local-lint@v0.3.0
+  with:
+    require-sha-pin: true
+    format: text
 ```
 
 ---
@@ -198,6 +214,46 @@ Job: test (defined as "Unit & Integration Tests")
 Total combinations: 4
 
 Grand Total Runner Jobs Across Evaluated Targets: 5
+```
+
+### 4. `version` — Inspect Version, License, & Links
+
+Inspect the compiled release version, commit hash, build date, license, and repository links:
+
+```bash
+# Human-readable version information
+gha-local-lint version
+
+# Or structured JSON for tooling
+gha-local-lint version --format=json
+```
+
+**Example Output:**
+```text
+gha-local-lint v0.3.0
+  Commit:  21ea990
+  Date:    2026-10-22T13:30:00Z
+  License: MIT License
+  Repo:    https://github.com/smford/gha-local-lint
+  Docs:    https://smford.github.io/gha-local-lint
+```
+
+---
+
+## Performance Benchmarks
+
+Built with Zero-CGO and optimized recursive-descent parsing:
+
+| Operation | Throughput | Latency | Allocations |
+| :--- | :--- | :--- | :--- |
+| **Expression Lexer** | ~1,630,000 ops/sec | 780 ns/op | 17 allocs/op |
+| **Expression Parser** | ~1,470,000 ops/sec | 707 ns/op | 33 allocs/op |
+| **Condition Evaluation** | ~830,000 ops/sec | 1.4 µs/op | 60 allocs/op |
+| **Dynamic Matrix Expansion** | ~4,700,000 ops/sec | 312 ns/op | 13 allocs/op |
+
+Run benchmarks locally:
+```bash
+make bench
 ```
 
 ---
