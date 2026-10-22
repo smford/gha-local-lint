@@ -30,7 +30,7 @@ const bashCompletionScript = `_gha_local_lint() {
     local cur prev words cword
     _init_completion || return
 
-    local commands="check simulate matrix graph expr completion version help"
+    local commands="check simulate matrix cost graph expr completion version help"
 
     if [ $cword -eq 1 ]; then
         COMPREPLY=( $(compgen -W "${commands}" -- "$cur") )
@@ -39,7 +39,7 @@ const bashCompletionScript = `_gha_local_lint() {
 
     case "${words[1]}" in
         check)
-            local opts="--require-sha-pin --fail-on-warning --format --fix"
+            local opts="--require-sha-pin --fail-on-warning --format --fix --config"
             if [[ "$cur" == -* ]]; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "$cur") )
             else
@@ -56,6 +56,14 @@ const bashCompletionScript = `_gha_local_lint() {
             ;;
         matrix)
             local opts="--job --format"
+            if [[ "$cur" == -* ]]; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "$cur") )
+            else
+                COMPREPLY=( $(compgen -f -X '!*.y*ml' -- "$cur") )
+            fi
+            ;;
+        cost)
+            local opts="--duration --runs --format"
             if [[ "$cur" == -* ]]; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "$cur") )
             else
@@ -90,6 +98,7 @@ _gha_local_lint() {
         'check:Validate workflow files for DAG cycles, broken outputs, and security'
         'simulate:Dry-run simulate workflow execution against synthetic event contexts'
         'matrix:Inspect and expand matrix combinations'
+        'cost:Estimate GitHub-hosted runner minutes and monthly cloud compute costs'
         'graph:Export workflow DAG as Mermaid or Graphviz DOT diagram'
         'expr:Evaluate GitHub Actions expressions and launch interactive REPL'
         'completion:Generate shell autocompletion script'
@@ -122,6 +131,13 @@ _gha_local_lint() {
         matrix)
             _arguments \
                 '--job[Filter by job ID]:job:' \
+                '--format[Output format (table, json)]:format:(table json)' \
+                '*:workflow file:_files -g "*.yml *.yaml"'
+            ;;
+        cost)
+            _arguments \
+                '--duration[Average job duration in minutes]:duration:' \
+                '--runs[Estimated monthly runs]:runs:' \
                 '--format[Output format (table, json)]:format:(table json)' \
                 '*:workflow file:_files -g "*.yml *.yaml"'
             ;;

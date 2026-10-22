@@ -229,6 +229,9 @@ func checkJob(wf *workflow.Workflow, job *workflow.Job, opts LintOptions) []Find
 		}
 	}
 
+	// Check deprecated runners
+	findings = append(findings, checkDeprecatedRunner(wf, job)...)
+
 	// Validate references in job-level fields
 	if job.If != "" {
 		findings = append(findings, validateReferences(wf, job, nil, job.If, job.IfPos, stepIDMap)...)
@@ -252,6 +255,9 @@ func checkJob(wf *workflow.Workflow, job *workflow.Job, opts LintOptions) []Find
 			findings = append(findings, checkScriptInjection(wf, job, step)...)
 			findings = append(findings, checkShellSyntax(wf, job, step)...)
 		}
+
+		// Validate hardcoded secrets
+		findings = append(findings, checkHardcodedSecrets(wf, job, step)...)
 
 		// Validate references in step
 		if step.If != "" {

@@ -45,8 +45,13 @@ Engineers regularly burn dozens of `"fix ci"`, `"fix ci 2"`, `"debug matrix"` co
   - Circular dependency detection in `needs:` chains (e.g. `job_a -> job_b -> job_a`).
   - Missing `needs:` targets and invalid output references (`needs.<job>.outputs.<key>` and `steps.<step>.outputs.<key>`).
   - Reusable workflow (`workflow_call`) validation: verifies caller passes required `inputs:` and target file exists.
-  - Security checks: flags untrusted input injection inside `run:` blocks.
+  - Security checks: flags untrusted input injection inside `run:` blocks and scans for hardcoded secrets (GitHub PATs, AWS keys, Slack webhooks, private keys).
+  - Deprecated runner detection: identifies retired or deprecated runners (`ubuntu-18.04`, `macos-11`, etc.) and recommends upgrades.
   - Best-practice rules: flags missing `timeout-minutes`, unpinned third-party actions, and `permissions: write-all`.
+  - Configurable rules & exclusions via `.gha-lint.yaml`.
+- **Runner Cost & Quota Estimator (`cost`)**:
+  - Estimates total runner-minutes and projected monthly dollar spend across Linux, macOS, and Windows runners.
+  - Accounts for multi-dimensional matrix multiplications and custom job `timeout-minutes`.
 - **Automated Remediation (`--fix`)**:
   - Auto-fixes script injections by extracting untrusted expressions into intermediate `env:` variables.
   - Auto-pins known popular actions (e.g. `actions/checkout@v4`) to immutable 40-character commit SHAs.
@@ -60,6 +65,7 @@ Engineers regularly burn dozens of `"fix ci"`, `"fix ci 2"`, `"debug matrix"` co
   - Mock job outputs with `--mock-output setup.matrix='[...]'`.
   - Interactive terminal mode (`--interactive`) for on-the-fly event toggling.
   - Visual tree display showing which jobs and steps **WILL RUN** vs **SKIPPED** (with exact reasons).
+  - Interactive standalone HTML report export (`--format=html`) with offline dark mode and live search/filter.
   - Simulate failure scenarios using `--fail-job <job_id>` to verify fallback and notification logic (`if: failure()` / `if: always()`).
 
 ---
@@ -122,6 +128,9 @@ gha-local-lint check --fix .github/workflows/*.yml
 # Enforce 40-character SHA pinning for third-party actions
 gha-local-lint check --require-sha-pin .github/workflows/*.yml
 
+# Use repository configuration (.gha-lint.yaml)
+gha-local-lint check --config .gha-lint.yaml .github/workflows/*.yml
+
 # Export SARIF for GitHub Code Scanning
 gha-local-lint check --format sarif .github/workflows/*.yml > results.sarif
 
@@ -154,6 +163,9 @@ gha-local-lint simulate .github/workflows/release.yml --event push --fail-job te
 
 # Launch interactive simulation explorer
 gha-local-lint simulate .github/workflows/release.yml --interactive
+
+# Generate standalone offline HTML simulation report
+gha-local-lint simulate .github/workflows/release.yml --format html > simulation_report.html
 ```
 
 **Example Output:**
@@ -216,7 +228,44 @@ Total combinations: 4
 Grand Total Runner Jobs Across Evaluated Targets: 5
 ```
 
-### 4. `graph` — Export Visual Pipeline DAGs
+---
+
+### 4. `cost` — Runner Cost & Quota Estimator
+
+Estimate compute minutes and billing costs across Linux, Windows, and macOS runners (accounting for matrix permutations and job timeouts):
+
+```bash
+# Estimate runner minutes and monthly budget across workflows
+gha-local-lint cost .github/workflows/*.yml
+
+# Customize estimated average job duration and monthly run volume
+gha-local-lint cost --duration 15 --runs-per-month 250 .github/workflows/ci.yml
+
+# Output machine-readable JSON for CI budgeting alerts
+gha-local-lint cost --format json .github/workflows/ci.yml
+```
+
+**Example Output:**
+```text
+======================================================================
+ RUNNER COST & QUOTA ESTIMATE: CI & Release Pipeline
+======================================================================
+Workflow: .github/workflows/ci.yml
+Total Runner Jobs per Run: 5 (Linux: 3, macOS: 1, Windows: 1)
+Estimated Compute per Run: 50 runner-minutes (~$0.1040/run)
+Monthly Estimate (100 runs): 5000 runner-minutes (~$10.40/month)
+
+Job ID               | OS       | Runners      | Est. Mins    | Cost / Month   
+---------------------+----------+--------------+--------------+----------------
+lint                 | linux    | 1            | 10           | $8.00          
+test                 | linux    | 2            | 20           | $16.00         
+cross-compile        | macos    | 1            | 10           | $64.00         
+windows-build        | windows  | 1            | 10           | $16.00         
+```
+
+---
+
+### 5. `graph` — Export Visual Pipeline DAGs
 
 Export job dependencies as Mermaid.js or Graphviz DOT flowcharts to embed in pull requests or architecture documentation:
 
@@ -244,7 +293,7 @@ flowchart TD
 
 ---
 
-### 5. `expr` — Expression Evaluator & Interactive REPL
+### 6. `expr` — Expression Evaluator & Interactive REPL
 
 Evaluate GitHub Actions expressions directly on the command line or launch an interactive REPL session:
 
@@ -261,7 +310,7 @@ gha-local-lint expr --interactive
 
 ---
 
-### 6. `completion` — Shell Autocompletion
+### 7. `completion` — Shell Autocompletion
 
 Generate fast autocompletion scripts for your shell:
 
@@ -278,7 +327,7 @@ gha-local-lint completion fish | source
 
 ---
 
-### 7. `version` — Inspect Version, License, & Links
+### 8. `version` — Inspect Version, License, & Links
 
 Inspect the compiled release version, commit hash, build date, license, and repository links:
 
@@ -320,6 +369,34 @@ make bench
 
 ---
 
+## Repository Configuration (`.gha-lint.yaml`)
+
+You can customize rules, severities, exclusions, and simulation defaults in a `.gha-lint.yaml` (or `.gha-lint.yml`) file at your repository root:
+
+```yaml
+version: 1
+
+# Exclude legacy or third-party workflows from validation
+exclude:
+  - ".github/workflows/archive/**"
+  - ".github/workflows/vendor-*.yml"
+
+# Rule severity overrides: off | info | warning | error
+rules:
+  hardcoded-secrets: error
+  deprecated-runner: error
+  unpinned-action: error
+  missing-timeout-minutes: warning
+  broad-permissions: warning
+
+# Default flags for simulation runs
+simulate:
+  default-ref: "refs/heads/main"
+  default-event: "pull_request"
+```
+
+---
+
 ## Rules Reference
 
 | Rule | Default Severity | Description |
@@ -332,6 +409,8 @@ make bench
 | `missing-required-workflow-input` | **ERROR** | Reusable workflow call is missing required `with:` input parameters. |
 | `script-injection` | **ERROR** | Untrusted context (`github.event.pull_request.title`, `head_ref`, etc.) directly interpolated in inline `run:` script. |
 | `shell-syntax` | **ERROR** | Shell syntax error detected inside an inline `run:` block. |
+| `hardcoded-secrets` | **ERROR** | Plaintext GitHub PATs (`ghp_`, `github_pat_`), AWS credentials, Slack webhooks, or private keys detected in workflow files. |
+| `deprecated-runner` | **WARNING** / **ERROR** | Identifies retired or deprecated GitHub runners (`ubuntu-18.04`, `ubuntu-20.04`, `macos-11`, etc.) and recommends current upgrades. |
 | `unpinned-action` | **WARNING** (ERROR with `--require-sha-pin`) | Third-party action is not pinned to a 40-character commit SHA. |
 | `missing-workflow-permissions` | **WARNING** | Workflow lacks a top-level `permissions:` block. |
 | `broad-permissions` | **WARNING** | Workflow or job defines overly permissive `permissions: write-all`. |

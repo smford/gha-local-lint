@@ -45,6 +45,8 @@ func main() {
 		os.Exit(runGraph(args))
 	case "expr":
 		os.Exit(runExpr(args))
+	case "cost":
+		os.Exit(runCost(args))
 	case "completion":
 		os.Exit(runCompletion(args))
 	case "version", "--version", "-v":
@@ -94,6 +96,7 @@ Commands:
   check       Statically validate workflow files for DAG cycles, broken references, and security
   simulate    Dry-run simulate workflow execution against synthetic event contexts
   matrix      Inspect and display expanded matrix combinations
+  cost        Estimate GitHub-hosted runner minutes and monthly cloud compute costs
   graph       Export workflow DAG as Mermaid.js or Graphviz DOT diagram
   expr        Evaluate GitHub Actions expressions directly or in interactive REPL
   completion  Generate shell autocompletion script (bash, zsh, fish)
@@ -121,13 +124,16 @@ func runCheck(args []string) int {
 	fs := flag.NewFlagSet("check", flag.ExitOnError)
 	requireSHAPin := fs.Bool("require-sha-pin", false, "Fail with an error if third-party actions are not pinned to a 40-character commit SHA")
 	failOnWarning := fs.Bool("fail-on-warning", false, "Exit with non-zero status if warnings are found")
-	format := fs.String("format", "text", "Output format: text, json, or sarif")
+	format := fs.String("format", "text", "Output format: text, json, sarif, or github")
 	fix := fs.Bool("fix", false, "Automatically apply safe remediations (e.g. pin known actions, rewrite script injections)")
+	configPath := fs.String("config", "", "Path to custom configuration file (.gha-lint.yaml)")
 	paths, err := parseFlagsAndArgs(fs, args)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Flag error: %v\n", err)
 		return 1
 	}
+
+	cfg, _ := rules.LoadConfig(*configPath)
 	if len(paths) == 0 {
 		// Look for .github/workflows/*.yml and *.yaml
 		matches1, _ := filepath.Glob(".github/workflows/*.yml")
@@ -183,6 +189,7 @@ func runCheck(args []string) int {
 			continue
 		}
 		findings := rules.Lint(wf, opts)
+		findings = rules.FilterFindings(findings, cfg, path)
 		allFindings = append(allFindings, findings...)
 		for _, f := range findings {
 			if f.Severity == rules.SeverityError {
@@ -318,14 +325,17 @@ func runSimulate(args []string) int {
 		return 1
 	}
 
-	if *format == "json" {
+	switch strings.ToLower(*format) {
+	case "json":
 		data, err := json.MarshalIndent(res, "", "  ")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error serializing JSON: %v\n", err)
 			return 1
 		}
 		fmt.Println(string(data))
-	} else {
+	case "html":
+		fmt.Print(simulator.GenerateHTMLReport(res, wf))
+	default:
 		fmt.Print(simulator.FormatSimulation(res))
 	}
 
