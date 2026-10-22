@@ -34,27 +34,33 @@ LINUX_ARM64_SHA=$(get_sha "linux" "arm64")
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 cat <<EOF > "$OUTPUT_FILE"
+# typed: false
+# frozen_string_literal: true
+
+# This formula was auto-generated for gha-local-lint (https://github.com/smford/gha-local-lint).
 class GhaLocalLint < Formula
-  desc "Offline GitHub Actions Expression & Matrix Simulator"
+  desc "Offline GitHub Actions Expression Evaluator, Matrix Expander, & Pipeline Simulator"
   homepage "https://github.com/smford/gha-local-lint"
   version "${VERSION}"
   license "MIT"
 
   on_macos do
-    if Hardware::CPU.arm?
+    on_arm do
       url "https://github.com/smford/gha-local-lint/releases/download/${TAG}/gha-local-lint_${VERSION}_darwin_arm64.tar.gz"
       sha256 "${DARWIN_ARM64_SHA}"
-    else
+    end
+    on_intel do
       url "https://github.com/smford/gha-local-lint/releases/download/${TAG}/gha-local-lint_${VERSION}_darwin_amd64.tar.gz"
       sha256 "${DARWIN_AMD64_SHA}"
     end
   end
 
   on_linux do
-    if Hardware::CPU.arm?
+    on_arm do
       url "https://github.com/smford/gha-local-lint/releases/download/${TAG}/gha-local-lint_${VERSION}_linux_arm64.tar.gz"
       sha256 "${LINUX_ARM64_SHA}"
-    else
+    end
+    on_intel do
       url "https://github.com/smford/gha-local-lint/releases/download/${TAG}/gha-local-lint_${VERSION}_linux_amd64.tar.gz"
       sha256 "${LINUX_AMD64_SHA}"
     end
@@ -65,7 +71,7 @@ class GhaLocalLint < Formula
   end
 
   test do
-    system "#{bin}/gha-local-lint", "--version"
+    assert_match "gha-local-lint", shell_output("#{bin}/gha-local-lint version")
   end
 end
 EOF

@@ -2,7 +2,7 @@ BINARY_NAME=gha-local-lint
 BIN_DIR=bin
 SRC_CMD=./cmd/gha-local-lint
 
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "v0.3.0")
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "v0.4.0")
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 

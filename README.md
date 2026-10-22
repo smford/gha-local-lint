@@ -72,11 +72,24 @@ Engineers regularly burn dozens of `"fix ci"`, `"fix ci 2"`, `"debug matrix"` co
 
 ## Installation
 
+### Via Homebrew (macOS & Linux)
+
+Install using the official Homebrew tap:
+
+```bash
+# Tap repository and install
+brew tap smford/tap
+brew install gha-local-lint
+
+# Or one-line install
+brew install smford/tap/gha-local-lint
+```
+
 ### From Source (Go 1.23+)
 
 ```bash
 # Clone the repository
-git clone https://github.com/asc/gha-local-lint.git
+git clone https://github.com/smford/gha-local-lint.git
 cd gha-local-lint
 
 # Build standalone binary (Zero-CGO)
@@ -93,7 +106,7 @@ Add this to your `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/smford/gha-local-lint
-    rev: v0.3.0
+    rev: v0.4.0
     hooks:
       - id: gha-local-lint
 ```
@@ -104,7 +117,7 @@ Run `gha-local-lint` directly in any GitHub Actions workflow via [`action.yml`](
 
 ```yaml
 - name: Lint Workflow Files
-  uses: smford/gha-local-lint@v0.3.0
+  uses: smford/gha-local-lint@v0.4.0
   with:
     require-sha-pin: true
     format: text
@@ -341,7 +354,7 @@ gha-local-lint version --format=json
 
 **Example Output:**
 ```text
-gha-local-lint v0.3.0
+gha-local-lint v0.4.0
   Commit:  3436034
   Date:    2026-10-22T13:35:30Z
   License: MIT License

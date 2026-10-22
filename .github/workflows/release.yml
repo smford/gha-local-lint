@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to release (e.g. v0.3.0)'
+        description: 'Tag to release (e.g. v0.4.0)'
         required: false
         default: ''
 
@@ -34,24 +34,8 @@ jobs:
           go-version: '1.23'
           cache: true
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4480b828374123cb9dbfb186fe87 # v3.2.0
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Sigstore Cosign
-        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
-
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@286f3218d700ba4501f23a1ec861535e9d424e1b # v6.0.0
+        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
         with:
           version: latest
           args: release --clean
@@ -69,7 +53,7 @@ jobs:
           gh release upload "${{ github.ref_name }}" Formula/gha-local-lint.rb --clobber
 
       - name: Update Homebrew Tap Repository
-        if: env.HOMEBREW_TOKEN != ''
+        if: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN != '' }}
         env:
           HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           TAG_NAME: ${{ github.ref_name }}
